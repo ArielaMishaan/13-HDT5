@@ -1,93 +1,112 @@
-import itertools
+import statistics
+import matplotlib.pyplot as plt
 import random
 import simpy
 
-env = simpy.Environment()
 
-RANDOM_SEED = 10
-RAM_SIZE = 100
-TAMANIO_RECURSO_CPU = 3                                    #tiene que ser variable
-RAPIDEZ_CPU = 1                                            #CPU realiza 1 proceso en 1 unidad de tiempo
-LLEGADA_PROCESOS = random.expovariate(1.0 / 10)            #llegada de procesos sigue una distribución exponencial con con intervalo 10
-SIM_TIME = 1000                                            # Simulation time in seconds
-CANT_MEMORIA_PROCESO = [1, 10]
-INSTRUCCIONES_PROCESO = [1, 10]
+RANDOM_SEED = 50
+MEMORIA_INICIAL = 100
+INTERVALO = 10
+TIEMPO_EJECUCION = 1
+INSTRUCCIONES_POR_TIEMPO = 3
+NUM_PROCESOS = [25, 50, 100, 150, 150, 200]
 
-def proceso(nombre, env, ram, cpu):
-    '''
-    Llega un proceso a RAM para realizarse. Pide de primero la asignación de RAM.
-    Luego espera la atención del CPU. Si el CPU tiene otro proceso, entonces el nuevo
-    tiene que esperar a que el CPU termine. 
-    '''
+tiempos_promedio = []
+desviaciones_estandar = []
+
+class Proceso:
+
+    def __init__ (self, id, env, RAM, cpu):        self.id = id
+        self.env = env
+        self.tiempo_llegada = env.now
+        self.memoria = random.randint(1, 10)
+        self.cpu_time = random.expovariate(1.0/10)
+        self.RAM = RAM
+        self.cpu = cpu
+        self.instrucciones = 10*self.cpu_time
+        
+    def ejecutar(self):
+        yield self.env.timeout(random.expovariate(1.0/INTERVALO))
+        tiempo_inicio = self.env.now
+        
+        with self.RAM.get(self.memoria) as req:
+        
+            yield req
+            
+            while self.instrucciones > 0:
+                
+                with self.cpu.request() as req:
+                    yield req
+                    yield self.env.timeout(TIEMPO_EJECUCION)
+                    self.instrucciones -= INSTRUCCIONES_POR_TIEMPO
+                    
+            self.RAM.put(self.memoria)
+        
+        tiempo_fin = self.env.now
+        tiempo_total = tiempo_fin - tiempo_inicio
+        return tiempo_total
+
+def simular(env, RAM, cpu, num_procesos):
     
-    cant_instrucciones_proceso = random.randint(*INSTRUCCIONES_PROCESO) 
-    print("%s llegando a la memoria RAM en la unidad de tiempo %.1f" % (nombre, env.now))
+    tiempos = []
     
-    with ram.request() as req:
-        start = env.now
+    for i in range(num_procesos):
+        proceso = Proceso(i, env, RAM, cpu)
+        proceso_ejecutar = env.process(ejecutar(self, cpu))
+        tiempo_total = yield proceso_ejecutar
+        tiempos.append(tiempo_total)
         
-        #pedir un espacio en la RAM
-        yield req
-        
-        #Obtener la atención del cpu por el tiempo necesario
-        #????
-        
-        #Tiempo que tarda cada instrucción
-        yield env.timeout(cant_instrucciones_proceso)
-        
-        print("%s terminó de ser atendido por la RAM en %.1f segundos" % (nombre, env.now - start))
-        
-def control_ram(env, cpu):
-    '''
-    Periódicamente se chequea el la cantidad de espacios disponibles del cpu y se llama al
-    RAM si se acaba el espacio
-    '''
+    tiempo_promedio = sum(tiempos)/num_procesos
+    desviacion_estandar = statistics.stdev(tiempos)
     
-    while True:
-        if cpu.level < 1:
-        
+    return tiempo_promedio, desviacion_estandar
 
-'''
-
-def gas_station_control(env, fuel_pump):
-    while True:
-        if fuel_pump.level / fuel_pump.capacity * 100 < THRESHOLD:
-            # We need to call the tank truck now!
-            print('Calling tank truck at %d' % env.now)
-            # Wait for the tank truck to arrive and refuel the station
-            yield env.process(tank_truck(env, fuel_pump))
-
-        yield env.timeout(10)  # Check every 10 seconds
-
-
-def tank_truck(env, fuel_pump):
-    """Arrives at the gas station after a certain delay and refuels it."""
-    yield env.timeout(TANK_TRUCK_TIME)
-    print('Tank truck arriving at time %d' % env.now)
-    ammount = fuel_pump.capacity - fuel_pump.level
-    print('Tank truck refuelling %.1f liters.' % ammount)
-    yield fuel_pump.put(ammount)
-
-
-def car_generator(env, gas_station, fuel_pump):
-    """Generate new cars that arrive at the gas station."""
-    for i in itertools.count():
-        yield env.timeout(random.randint(*T_INTER))
-        env.process(car('Car %d' % i, env, gas_station, fuel_pump))
-
-
-# Setup and start the simulation
-print('Gas Station refuelling')
+#Configurar semilla aleatoria
 random.seed(RANDOM_SEED)
 
-# Create environment and start processes
+#Realizar la simulación para diferentes números de procesos
+for num_procesos in NUM_PROCESOS:
+    env = simpy.Environment()
+    RAM = simpy.Container(env, init = MEMORIA_INICIAL, capacity = MEMORIA_INICIAL)
+    cpu = simpy.Resource (env, capacity = 1)
+    tiempo_promedio, desviacion_estandar = simular(env, RAM, cpu, num_procesos)
+    tiempos_promedio.append(tiempo_promedio)
+    desviaciones_estandar.append(desviacion_estandar)
+    
+
+#Mostrar los resultados
+for i, num_procesos in enumerate(NUM_PROCESOS):
+    print(f"Simulación con {num_procesos} procesos:")
+    print(f"Tiempo promedio: {tiempos_promedio[i]:.2f}")
+    print(f"Desviación estándar: {desviaciones_estandar[i]:.2f}")
+    
+    #Graficar los resultados
+    plt.plot(NUM_PROCESOS, tiempos_promedio, "ro-")
+    plt.xlabel("Número de procesos")
+    plt.ylabel("Tiempo promeido")
+    plt.show()
+    
+'''
+    yield proceso.RAM.get(proceso.memoria)
+    yield CPU.request()
+    yield env.timeout(proceso.cpu_time)
+    yield CPU.release()
+    proceso.RAM.put(proceso.memoria)
+    
+#parámetros de la simulación
+intervalo = 10
+num_procesos = 25
+
+#crear el entorno de la simulación
 env = simpy.Environment()
-gas_station = simpy.Resource(env, 2)
-fuel_pump = simpy.Container(env, GAS_STATION_SIZE, init=GAS_STATION_SIZE)
-env.process(gas_station_control(env, fuel_pump))
-env.process(car_generator(env, gas_station, fuel_pump))
 
-# Execute!
-env.run(until=SIM_TIME)
+#crear los recursos
+RAM = simpy.Container(env, init = 100, capacity = 100)
+CPU = simpy.Resource(env, capacity = 1)
 
+#iniciar la llegada de procesos
+env.process(llegada_proceso(env, RAM, CPU))
+
+#ejecutar la simulación
+env.run(until = 1000)
 '''
