@@ -16,7 +16,8 @@ desviaciones_estandar = []
 
 class Proceso:
 
-    def __init__ (self, id, env, RAM, cpu):        self.id = id
+    def __init__ (self, id, env, RAM, cpu):        
+        self.id = id
         self.env = env
         self.tiempo_llegada = env.now
         self.memoria = random.randint(1, 10)
@@ -61,7 +62,7 @@ def simular(env, RAM, cpu, num_procesos):
     
     return tiempo_promedio, desviacion_estandar
 
-#Configurar semilla aleatoria
+#semilla aleatoria
 random.seed(RANDOM_SEED)
 
 #Realizar la simulación para diferentes números de procesos
@@ -86,27 +87,3 @@ for i, num_procesos in enumerate(NUM_PROCESOS):
     plt.ylabel("Tiempo promeido")
     plt.show()
     
-'''
-    yield proceso.RAM.get(proceso.memoria)
-    yield CPU.request()
-    yield env.timeout(proceso.cpu_time)
-    yield CPU.release()
-    proceso.RAM.put(proceso.memoria)
-    
-#parámetros de la simulación
-intervalo = 10
-num_procesos = 25
-
-#crear el entorno de la simulación
-env = simpy.Environment()
-
-#crear los recursos
-RAM = simpy.Container(env, init = 100, capacity = 100)
-CPU = simpy.Resource(env, capacity = 1)
-
-#iniciar la llegada de procesos
-env.process(llegada_proceso(env, RAM, CPU))
-
-#ejecutar la simulación
-env.run(until = 1000)
-'''
