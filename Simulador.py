@@ -1,88 +1,85 @@
-import statistics
-import matplotlib.pyplot as plt
+import itertools
 import random
 import simpy
+import statistics
+import matplotlib.pyplot as plt
 
 RANDOM_SEED = 42
-INTERVALOS = [10, 5, 1]
-INSTRUCCIONES_POR_TIEMPO = [3, 4, 5, 6]
+RAM_INICIAL = 100
+INTERVALO = 10
+TIEMPO_EJECUCION = 1
+INSTRUCCIONES_POR_TIEMPO = 3
 NUM_PROCESOS = [25, 50, 100, 150, 200]
+SIM_TIME = 1000            # Simulation time in seconds
 
-class Proceso:
+tiempos = []
+tiempos_promedio = []
+desviaciones_estandar = []
+tiempo_llegada = random.expovariate(1.0/INTERVALO)
 
-    def __init__ (self, name, env, RAM, cpu_vel):        
-        self.env = env
-        self.name = name
-        self.RAM = RAM
-        self.cpu_vel = cpu_vel
-        self.memoria = random.randint(1, 10)
-        self.tiempo_espera = 0
-        self.tiempo_proceso = 0
-        self.tiempo_llegada = env.now
-        self.cpu_time = random.expovariate(1.0/10)
+def proceso(nombre, env, ram, cpu):
+    
+    #el proceso llega con un número aleatorio de instrucciones en el estado NEW
+    tiempo_inicio = env.now
+    
+    cant_instrucciones = random.randint(1, 10)
+    cant_memoria_requerida = random.randint(1, 10)
+    
+    print(nombre, ' llegando a la memoria RAM en ' , env.now, ' con ' , cant_instrucciones, ' instrucciones.')
+    #print(nombre + ' llegando a la memoria RAM en ' + env.now + ' con '+ cant_instrucciones + ' instrucciones')
+    
+    with ram.request() as req:
+    #ram.get(RAM_INICIAL) as req:
         
-    def ejecutar(self, cpu):
-
-        with cpu.request() as req:
-            yield req
-            while self.memoria > 0:
-                yield self.env.timeout(1/self.cpu_vel)
-                self.memoria -= 3
-            if self.memoria <= 0:
-                if random.random() <= 0.5:
-                    self.tiempo_espera -= self.env.now
-                    self.env.process(self.io())
-                else:
-                    self.tiempo_proceso = self.env.now - self.tiempo_llegada
-
-    def io(self):
-        with io_request.request() as req:
-            yield req
-            self.tiempo_espera += self.env.now
-            yield self.env.timeout(random.randint(1, 2))
-            self.tiempo_espera -= self.env.now
-            self.env.process(self.ejecutar(cpu))
-
-def llegada(env, RAM, cpu, io_request):
-    i = 0
-    while True:
-        i += 1
-        p = Process(env, f'Process {i}', ram, random.choice(INSTRUCCIONES_POR_TIEMPO))
-        env.process(run_process(env, p, cpu, ram, io_request))
-        t = random.expovariate(1.0 / INTERVALOS)
-        yield env.timeout(t)
-
-def proceso_ejecucion(env, proceso, cpu, ram, io_request):
-    with ram.get(process.memoria_req) as req:
+        start = env.now
+                
+        #pedir memoria para entrar en el estado de READY
         yield req
-        yield env.process(process.ejecutar(cpu))
-        ram.put(process.memoria_req)
+        
+        while cant_instrucciones > 0:
+            
+            with cpu.get(cant_instrucciones) as req:
+                
+                #obtener la memoria requerida del cpu para entrar en el estado de RUNNING
+                yield req
+                yield env.timeout(TIEMPO_EJECUCION)
+                
+                cant_instrucciones -= INSTRUCCIONES_POR_TIEMPO
+                waiting_ready = random.randint(1, 2)
+                
+                #si el número al azar es 1, el proceso pasa a la cola de WAITING y hace operaciones de I/O
+                if waiting_ready == 1:
+                    
+                    #luego del determinado tiempo, el proceso regresa al estado de READY y sigue con las instrucciones hasta terminar
+                    yield env.timeout(2)
+        
+    ram.put(cant_memoria_requerida)
+    fin = env.now
+            
+    tiempo_total = start - fin
+            
+    print('El proceso ', nombre, ' terminó de ser ejecutado en ', tiempo_total, ' unidades de tiempo.')
+    
+def generador_procesos(env, ram, cpu):
+    
+    #Generar nuevos procesos que lleguen a RAM a pedir memoria
+    for i in range (25):
+        
+        yield env.timeout(random.expovariate(1.0/INTERVALO))
+        env.process(proceso('Proceso %d' %i, env, ram, cpu))
+        #tiempos.append(tiempo_total)
+    
+print("\n°°°°°°°°°°°°°°°°°°°° SIMULADOR MEMORIA RAM °°°°°°°°°°°°°°°°°°°° ")
+random.seed(RANDOM_SEED)
 
-def simular_ejecucion(num_procesos, intervalo, cpu_vel):
-    #semilla aleatoria
-    random.seed(RANDOM_SEED)
-    env = simpy.Environment()
-    cpu = simpy.Resource(env, capacidad = 1)
-    ram = simpy.Container(env, capacidad = 100, init = 100)
-    io_request = simpy.Resource(env, capacidad = 1)
-    env.process(llegada(env, RAM, cpu, io_request))
-    env.ejecutar(until = num_procesos * intervalo)
-    tiempos_proceso = [p.tiempo_proceso for p in env.procesos if isinstance(p, Process)]
-    tiempo_proceso_promedio = statistics.mean(tiempos_proceso)
-    tiempo_proceso_std = statistics.stdev(tiempos_proceso)
-    return tiempo_proceso_promedio, tiempo_proceso_std
+#crear el ambiente y comenzar los procesos
+env = simpy.Environment()
+ram = simpy.Resource(env, 1)
+cpu = simpy.Container(env, 1, init = 1)
+env.process(generador_procesos(env, ram, cpu))
 
-#Parte A
-tiempos_promedio_a = []
-tiempos_promedio_std = []
-for num_procesos in NUM_PROCESOS:
-    tiempo_promedio, tiempo_std = simular_ejecucion(num_procesos, INTERVALOS[0], INSTRUCCIONES_POR_TIEMPO)
-    tiempos_promedio_a.append(tiempo_promedio)
-    tiempos_promedio_std.append(tiempo_std)
-plt.plot(NUM_PROCESOS, tiempos_promedio_std)
-plt.xlabel('Número de procesos')
-plt.ylabel('Tiempo de proceso promedio')
-plt.show()
+#ejecutar
+env.run()
 
-#Parte B
-tiempos_promedio_b
+#cálculo tiempo promedios
+    
