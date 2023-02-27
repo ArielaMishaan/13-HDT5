@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 
 RANDOM_SEED = 42
 RAM_INICIAL = 100
-INTERVALOS = [10, 5, 1]
+INTERVALO1 = 10
+INTERVALO2 = 5
+INTERVALO3 = 1
 TIEMPO_EJECUCION = 1
 INSTRUCCIONES_POR_TIEMPO = 3
 NUM_PROCESOS = [25, 50, 100, 150, 200]
 SIM_TIME = 1000            # Simulation time in seconds
 
 tiempos = []
-#tiempo_llegada = random.expovariate(1.0/INTERVALO)
+tiempo_llegada = random.expovariate(1.0/INTERVALO)
 
 def proceso(nombre, env, ram, cpu):
     
@@ -25,12 +27,14 @@ def proceso(nombre, env, ram, cpu):
     
     print(nombre, ' llegando a la memoria RAM en ' , env.now, ' con ' , cant_instrucciones, ' instrucciones.')
     #print(nombre + ' llegando a la memoria RAM en ' + env.now + ' con '+ cant_instrucciones + ' instrucciones')
-    
+
     with ram.get(cant_instrucciones):
+
     #ram.get(RAM_INICIAL) as req:
         
         start = env.now
-                
+
+
         #pedir memoria para entrar en el estado de READY
         print('El proceso ', nombre, ' tiene ram')
         
@@ -51,16 +55,16 @@ def proceso(nombre, env, ram, cpu):
                     
                     #luego del determinado tiempo, el proceso regresa al estado de READY y sigue con las instrucciones hasta terminar
                     yield env.timeout(2)
-        
+
     print('El proceso ', nombre, ' dejó cpu')
-    
+        
     ram.put(cant_memoria_requerida)
     fin = env.now
             
     tiempo_total = fin - start
     tiempos.append(tiempo_total)
             
-    print('El proceso ', nombre, ' terminó de ser ejecutado en ', tiempo_total, ' unidades de tiempo.')
+    print('El proceso ', nombre, ' terminó de ser ejecutado en ', tiempo_total, ' unidades de tiempo.\n')
     
 def generador_procesos(env, ram, cpu, intervalo, cant_procesos):
     
@@ -74,42 +78,41 @@ def generador_procesos(env, ram, cpu, intervalo, cant_procesos):
 print("\n°°°°°°°°°°°°°°°°°°°° SIMULADOR MEMORIA RAM °°°°°°°°°°°°°°°°°°°° ")
 random.seed(RANDOM_SEED)
 
-for i in INTERVALOS:
-    for j in NUM_PROCESOS
+#Correr la simulación para 25, 50, 100, 150 y 200 procesos (INTERVALO = 10)
+tiempos_promedio1 = []
+desviaciones_estandar1 = []
 
-        tiempos_promedio = []
-        desviaciones_estandar = []
+for i in NUM_PROCESOS:
+    env = simpy.Environment()
+    ram = simpy.Container(env, 100, init=100)
+    cpu = simpy.Resource(env, 1)
+    
+    env.process(generador_procesos(env, ram, cpu, INTERVALO1, i))
+    env.run()
+    
+    #cálculo tiempo promedio y desviación estándar
+    print("\nTIEMPO PROMEDIO DE EJECUCIÓN DE LOS PROCESOS: ")
+    tiempo_promedio = statistics.mean(tiempos)
+    tiempos_promedio1.append(tiempo_promedio)
+    print(tiempo_promedio)
 
-        env = simpy.Environment()
-        ram = simpy.Container(env, 100, init=100)
-        cpu = simpy.Resource(env, 1)
+    print("\nDESVIACIÓN ESTÁNDAR DEL TIEMPO DE EJECUCIÓN DE LOS PROCESOS: ")
+    desviacion_estandar = statistics.stdev(tiempos)
+    desviaciones_estandar1.append(desviacion_estandar)
+    print(desviacion_estandar)
+    
+    #reiniciar lista de tiempos
+    tiempos = []
+    
+    print("\n\nTIEMPOS PROMEDIO: ")
+    print("-------------------------")
+    for i in tiempos_promedio1:
+        print(i)
         
-        env.process(generador_procesos(env, ram, cpu, i, j))
-        env.run()
-        
-        #cálculo tiempo promedio y desviación estándar
-        print("\nTIEMPO PROMEDIO DE EJECUCIÓN DE LOS PROCESOS: ")
-        tiempo_promedio = statistics.mean(tiempos)
-        tiempos_promedio.append(tiempo_promedio)
-        print(tiempo_promedio)
-
-        print("\nDESVIACIÓN ESTÁNDAR DEL TIEMPO DE EJECUCIÓN DE LOS PROCESOS: ")
-        desviacion_estandar = statistics.stdev(tiempos)
-        desviaciones_estandar.append(desviacion_estandar)
-        print(desviacion_estandar)
-        
-        #reiniciar lista de tiempos
-        tiempos = []
-        
-        print("\n\nTIEMPOS PROMEDIO: ")
-        print("-------------------------")
-        for k in tiempos_promedio:
-            print(k)
-            
-        print("\n\nDESVIACIONES ESTÁNDAR: ")
-        print("-------------------------")
-        for k in desviaciones_estandar1:
-            print(k)
+    print("\n\nDESVIACIONES ESTÁNDAR: ")
+    print("-------------------------")
+    for i in desviaciones_estandar1:
+        print(i)
         
 #Graficar Número de procesos vs tiempo promedio
 plt.plot(NUM_PROCESOS, tiempos_promedio1, "ro-")
