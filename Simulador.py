@@ -5,15 +5,15 @@ import statistics
 
 RANDOM_SEED = 42
 RAM_INICIAL = 100
-INTERVALO = 10
+INTERVALO1 = 10
+INTERVALO2 = 5
+INTERVALO3 = 1
 TIEMPO_EJECUCION = 1
 INSTRUCCIONES_POR_TIEMPO = 3
 NUM_PROCESOS = [25, 50, 100, 150, 200]
 SIM_TIME = 1000            # Simulation time in seconds
 
 tiempos = []
-tiempos_promedio = []
-desviaciones_estandar = []
 tiempo_llegada = random.expovariate(1.0/INTERVALO)
 
 def proceso(nombre, env, ram, cpu):
@@ -59,13 +59,14 @@ def proceso(nombre, env, ram, cpu):
     fin = env.now
             
     tiempo_total = start - fin
+    tiempos.append(tiempo_total)
             
     print('El proceso ', nombre, ' terminó de ser ejecutado en ', tiempo_total, ' unidades de tiempo.')
     
 def generador_procesos(env, ram, cpu):
     
     #Generar nuevos procesos que lleguen a RAM a pedir memoria
-    for i in range (25):
+    for i in range (cant_procesos):
         
         yield env.timeout(random.expovariate(1.0/INTERVALO))
         env.process(proceso('Proceso %d' %i, env, ram, cpu))
@@ -74,14 +75,126 @@ def generador_procesos(env, ram, cpu):
 print("\n°°°°°°°°°°°°°°°°°°°° SIMULADOR MEMORIA RAM °°°°°°°°°°°°°°°°°°°° ")
 random.seed(RANDOM_SEED)
 
-#crear el ambiente y comenzar los procesos
-env = simpy.Environment()
-ram = simpy.Container(env, 100, init=100)
-cpu = simpy.Resource(env, 1)
-env.process(generador_procesos(env, ram, cpu))
-
-#ejecutar
-env.run()
-
-#cálculo tiempo promedios
+for i in NUM_PROCESOS:
+    env = simpy.Environment()
+    ram = simpy.Container(env, 100, init=100)
+    cpu = simpy.Resource(env, 1)
     
+    env.process(generador_procesos(env, ram, cpu, INTERVALO1, i))
+    env.run()
+    
+    #cálculo tiempo promedio y desviación estándar
+    print("\nTIEMPO PROMEDIO DE EJECUCIÓN DE LOS PROCESOS: ")
+    tiempo_promedio = statistics.mean(tiempos)
+    tiempos_promedio1.append(tiempo_promedio)
+    print(tiempo_promedio)
+
+    print("\nDESVIACIÓN ESTÁNDAR DEL TIEMPO DE EJECUCIÓN DE LOS PROCESOS: ")
+    desviacion_estandar = statistics.stdev(tiempos)
+    desviaciones_estandar1.append(desviacion_estandar)
+    print(desviacion_estandar)
+    
+    #reiniciar lista de tiempos
+    tiempos = []
+    
+    print("\n\nTIEMPOS PROMEDIO: ")
+    print("-------------------------")
+    for i in tiempos_promedio1:
+        print(i)
+        
+    print("\n\nDESVIACIONES ESTÁNDAR: ")
+    print("-------------------------")
+    for i in desviaciones_estandar1:
+        print(i)
+        
+#Graficar Número de procesos vs tiempo promedio
+plt.plot(NUM_PROCESOS, tiempos_promedio1, "ro-")
+plt.xlabel("Número de procesos")
+plt.ylabel("Tiempo promedio")
+plt.show()
+
+#------------------------------------------------------------------------------------------
+#Correr la simulación para 25, 50, 100, 150 y 200 procesos (INTERVALO = 5)
+tiempos_promedio2 = []
+desviaciones_estandar2 = []
+
+for i in NUM_PROCESOS:
+    env = simpy.Environment()
+    ram = simpy.Container(env, 100, init=100)
+    cpu = simpy.Resource(env, 1)
+    
+    env.process(generador_procesos(env, ram, cpu, INTERVALO2, i))
+    env.run()
+    
+    #cálculo tiempo promedio y desviación estándar
+    print("\nTIEMPO PROMEDIO DE EJECUCIÓN DE LOS PROCESOS: ")
+    tiempo_promedio = statistics.mean(tiempos)
+    tiempos_promedio2.append(tiempo_promedio)
+    print(tiempo_promedio)
+
+    print("\nDESVIACIÓN ESTÁNDAR DEL TIEMPO DE EJECUCIÓN DE LOS PROCESOS: ")
+    desviacion_estandar = statistics.stdev(tiempos)
+    desviaciones_estandar2.append(desviacion_estandar)
+    print(desviacion_estandar)
+    
+    #reiniciar lista de tiempos
+    tiempos = []
+    
+    print("\n\nTIEMPOS PROMEDIO: ")
+    print("-------------------------")
+    for i in tiempos_promedio2:
+        print(i)
+        
+    print("\n\nDESVIACIONES ESTÁNDAR: ")
+    print("-------------------------")
+    for i in desviaciones_estandar2:
+        print(i)
+        
+#Graficar Número de procesos vs tiempo promedio
+plt.plot(NUM_PROCESOS, tiempos_promedio2, "ro-")
+plt.xlabel("Número de procesos")
+plt.ylabel("Tiempo promedio")
+plt.show()
+
+#------------------------------------------------------------------------------------------
+#Correr la simulación para 25, 50, 100, 150 y 200 procesos (INTERVALO = 1)
+tiempos_promedio3 = []
+desviaciones_estandar3 = []
+
+for i in NUM_PROCESOS:
+    env = simpy.Environment()
+    ram = simpy.Container(env, 100, init=100)
+    cpu = simpy.Resource(env, 1)
+    
+    env.process(generador_procesos(env, ram, cpu, INTERVALO3, i))
+    env.run()
+    
+    #cálculo tiempo promedio y desviación estándar
+    print("\nTIEMPO PROMEDIO DE EJECUCIÓN DE LOS PROCESOS: ")
+    tiempo_promedio = statistics.mean(tiempos)
+    tiempos_promedio3.append(tiempo_promedio)
+    print(tiempo_promedio)
+
+    print("\nDESVIACIÓN ESTÁNDAR DEL TIEMPO DE EJECUCIÓN DE LOS PROCESOS: ")
+    desviacion_estandar = statistics.stdev(tiempos)
+    desviaciones_estandar3.append(desviacion_estandar)
+    print(desviacion_estandar)
+    
+    #reiniciar lista de tiempos
+    tiempos = []
+    
+    print("\n\nTIEMPOS PROMEDIO: ")
+    print("-------------------------")
+    for i in tiempos_promedio3:
+        print(i)
+        
+    print("\n\nDESVIACIONES ESTÁNDAR: ")
+    print("-------------------------")
+    for i in desviaciones_estandar3:
+        print(i)
+        
+#Graficar Número de procesos vs tiempo promedio
+plt.plot(NUM_PROCESOS, tiempos_promedio3, "ro-")
+plt.xlabel("Número de procesos")
+plt.ylabel("Tiempo promedio")
+plt.show()
