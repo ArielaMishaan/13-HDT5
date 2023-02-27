@@ -2,7 +2,6 @@ import itertools
 import random
 import simpy
 import statistics
-import matplotlib.pyplot as plt
 
 RANDOM_SEED = 42
 RAM_INICIAL = 100
@@ -28,17 +27,17 @@ def proceso(nombre, env, ram, cpu):
     print(nombre, ' llegando a la memoria RAM en ' , env.now, ' con ' , cant_instrucciones, ' instrucciones.')
     #print(nombre + ' llegando a la memoria RAM en ' + env.now + ' con '+ cant_instrucciones + ' instrucciones')
     
-    with ram.request() as req:
+    with ram.get(cant_instrucciones):
     #ram.get(RAM_INICIAL) as req:
         
         start = env.now
                 
         #pedir memoria para entrar en el estado de READY
-        yield req
+        print('El proceso ', nombre, ' tiene ram')
         
         while cant_instrucciones > 0:
             
-            with cpu.get(cant_instrucciones) as req:
+            with cpu.request() as req:
                 
                 #obtener la memoria requerida del cpu para entrar en el estado de RUNNING
                 yield req
@@ -46,6 +45,7 @@ def proceso(nombre, env, ram, cpu):
                 
                 cant_instrucciones -= INSTRUCCIONES_POR_TIEMPO
                 waiting_ready = random.randint(1, 2)
+                print('El proceso ', nombre, ' tiene cpu')
                 
                 #si el número al azar es 1, el proceso pasa a la cola de WAITING y hace operaciones de I/O
                 if waiting_ready == 1:
@@ -53,6 +53,8 @@ def proceso(nombre, env, ram, cpu):
                     #luego del determinado tiempo, el proceso regresa al estado de READY y sigue con las instrucciones hasta terminar
                     yield env.timeout(2)
         
+    print('El proceso ', nombre, ' dejó cpu')
+    
     ram.put(cant_memoria_requerida)
     fin = env.now
             
@@ -74,8 +76,8 @@ random.seed(RANDOM_SEED)
 
 #crear el ambiente y comenzar los procesos
 env = simpy.Environment()
-ram = simpy.Resource(env, 1)
-cpu = simpy.Container(env, 1, init = 1)
+ram = simpy.Container(env, 100, init=100)
+cpu = simpy.Resource(env, 1)
 env.process(generador_procesos(env, ram, cpu))
 
 #ejecutar
